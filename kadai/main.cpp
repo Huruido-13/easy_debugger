@@ -42,8 +42,12 @@ BOOL binary(unsigned int eflags_cpy,ofstream&);
 
 int _tmain(int argc, _TCHAR* argv[]) {
 	cout << std::uppercase << std::hex << endl;//出力の書式の設定
+
+	wstring filepath (argv[0]);
+	string filepath2 (filepath.begin(), filepath.end());
+
 	// 指定したファイルパスからテキストファイルを読み込む。無ければ作る
-	ofstream out_file{ "C:\\Users\\Oniichan\\source\\repos\\kadai\\kadai\\outputfile.txt" ,std::ios::out};
+	ofstream out_file{ "\\outputfile.txt",std::ios::out};
 
 	if (!out_file.is_open()) {
 		cout << "ファイルが開けません" << endl;
@@ -62,10 +66,10 @@ int _tmain(int argc, _TCHAR* argv[]) {
 	memset(&pi, 0, sizeof(pi));
 	memset(&si, 0, sizeof(si));
 	si.cb = sizeof(STARTUPINFO);
-	wstring filename(L"c:\\windows\\syswow64\\notepad.exe");
+	//wstring filename(L"c:\\windows\\syswow64\\notepad.exe");
 
 	BOOL creationResult = CreateProcess(NULL,
-		(LPWSTR)filename.c_str(),
+		/*(LPWSTR)filename.c_str()*/argv[0],
 		NULL,
 		NULL,
 		FALSE,
