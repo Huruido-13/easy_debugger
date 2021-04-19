@@ -12,9 +12,9 @@
 
 using namespace std;
 
-#define BUFSIZE 512
+constexpr int BUFSIZE{ 512 };
 
-// coutとofstreamオブジェクトへの書き込みを一度に行うためのクラス
+// std::coutによる出力とofstreamオブジェクトへの書き込みを一度に行うためのクラス
 // 引数にostreamオブジェクト2つをとり、右辺値をそのまま2つに入れる
 class dout
 {
@@ -40,14 +40,71 @@ void format_error_message();
 BOOL GetFileNameFromHandle(HANDLE,DWORD,ofstream&);//Microsoftが提供しているfilehandleからファイルのフルパスを出力する関数
 BOOL binary(unsigned int eflags_cpy,ofstream&);
 
-int _tmain(int argc, _TCHAR* argv[]) {
-	cout << std::uppercase << std::hex << endl;//出力の書式の設定
 
-	wstring filepath (argv[0]);
-	string filepath2 (filepath.begin(), filepath.end());
+
+int main() {
+	int enter_key{};
+	bool file_check{false};
+	bool txt_check{ false };
+	bool roop_key{ true };
+	WCHAR  exe_file_path[256];
+	string text_file_path{};
+	int stop{};
+
+
+	while (roop_key) {
+		//system("cls");
+		cout << "以下の項目から選んでください" << endl;
+		cout << "\nデバッガの実行----Enter\'1\'" << endl;
+		cout << "デバッグ対象の実行ファイルを指定する----Enter\'2\'" << endl;
+		cout << "デバッグ結果の出力先ファイルを指定する----Enter\'3\'" << endl;
+		cout << "デバッガを閉じる----Enter\'4\'\n" << endl;
+
+		cout << "Enter:";
+
+		cin >> enter_key;
+
+		switch (enter_key)
+		{
+		case 1:
+			if (file_check&&txt_check) {
+				cout << "デバッガを実行します" << endl;
+				roop_key = false;
+				break;
+			}
+			cout << "実行ファイルと出力先ファイルを指定してください\n" << endl;
+			break;
+		case 2:
+			cout << "実行ファイルを絶対PATHで指定してください： ";
+			wscanf_s(L"%s", exe_file_path,256);
+
+			file_check = true;
+
+			break;
+		case 3:
+			cout << "出力先ファイルを絶対PATHで指定してください： ";
+			cin >> text_file_path;
+			text_file_path += "\\outputtxt.txt";
+			txt_check = true;
+
+			break;
+
+		case 4:
+			return 0;
+			break;
+
+		default:
+			break;
+		}
+
+	}
+	//createprocess関数に渡すURLの準備
+	wstring exe_file_path_cpy = L"";
+	exe_file_path_cpy.append(exe_file_path);
+	LPWSTR true_exe_file_path = &exe_file_path_cpy[0];
 
 	// 指定したファイルパスからテキストファイルを読み込む。無ければ作る
-	ofstream out_file{ "\\outputfile.txt",std::ios::out};
+	ofstream out_file{ text_file_path,std::ios::out };
 
 	if (!out_file.is_open()) {
 		cout << "ファイルが開けません" << endl;
@@ -55,13 +112,8 @@ int _tmain(int argc, _TCHAR* argv[]) {
 	}
 
 	STARTUPINFO si;
-	PROCESS_INFORMATION pi;
 	//構造体。CreateProcess関数の実行後、デバック対象プログラムのプロセスIDとスレッドIDを取得できる
-
-	//if (argc < 2) {
-	//	cout << "引数が1つ以下です" << endl;
-	//	return 0;
-	//}
+	PROCESS_INFORMATION pi;
 
 	memset(&pi, 0, sizeof(pi));
 	memset(&si, 0, sizeof(si));
@@ -69,7 +121,7 @@ int _tmain(int argc, _TCHAR* argv[]) {
 	//wstring filename(L"c:\\windows\\syswow64\\notepad.exe");
 
 	BOOL creationResult = CreateProcess(NULL,
-		/*(LPWSTR)filename.c_str()*/argv[0],
+		true_exe_file_path,
 		NULL,
 		NULL,
 		FALSE,
@@ -83,38 +135,24 @@ int _tmain(int argc, _TCHAR* argv[]) {
 		cout << "実行ファイルを読み取れませんでした。" << endl;
 		return 0;
 	}
-	bool t = true;
-
-	DWORD dwContinueStatus = DBG_CONTINUE;//スレッドで例外発生時に例外処理を無視し処理を続ける設定
-
-	//ResumeThread(pi.hThread);//サスペンドしたプログラムの実行
 
 
-	CONTEXT regis;
-	memset(&regis, 0, sizeof(regis));
-	regis.ContextFlags = CONTEXT_FULL;//レジスタの情報を入れるための構造体の初期化とフラグの設定
-	DEBUG_EVENT de;
 
-
+	CONTEXT regis; //レジスタの情報を入れるための構造体
+	memset(&regis, 0, sizeof(regis)); //構造体の初期化
+	regis.ContextFlags = CONTEXT_FULL;//レジスタの情報を入れるための構造体のフラグの設定
+	DEBUG_EVENT de; //DEBUG_EVENT構造体の宣言
+	DWORD dwContinueStatus = DBG_CONTINUE;
 
 	while (1) {
 
-
+		//CreateProcess関数によって起動されたプログラムは、WaitForDebugEvent関数が呼び出されるまで停止している。
 		if (!WaitForDebugEvent(&de, INFINITE)) {
-			//CreateProcess関数によって起動されたプログラムは、WaitForDebugEvent関数が呼び出されるまで停止している。
 			break;
 		}
 
-		//istream::int_type ch;
-		//while ((ch = cin.get()) != EOF) {
-		//	break;
-		//}
-
 		dwContinueStatus = DBG_CONTINUE;//スレッドで例外発生時に例外処理を無視し処理を続ける設定
 
-
-
-		
 
 		switch (de.dwDebugEventCode)//waitfordebugevent関数で補足した情報をDEBUG__EVENT構造体から取り出す。dwDebugEventCodeの値によって共用体uの値が決まる。
 		{
@@ -176,9 +214,10 @@ int _tmain(int argc, _TCHAR* argv[]) {
 			break;
 		}
 
+		/* デバッグイベントの発生によってWaitForDebugEventがコールされる
+		コールされるとデバック対象のプログラム（デバッギ）は停止するので、対応する処理をした後この関数で再開させる*/
 		ContinueDebugEvent(de.dwProcessId, de.dwThreadId, dwContinueStatus);
-		//デバッグイベントの発生によってWaitForDebugEventがコールされる
-		//コールされるとデバック対象プログラムは停止するので、この関数で再開させる
+
 	}
 
 	CloseHandle(pi.hThread);
@@ -226,8 +265,6 @@ void format_error_message() {
 	MessageBox(0, (LPCTSTR)lpMsgBuf, _TEXT("エラー"), MB_OK | MB_ICONINFORMATION);
 	delete lpMsgBuf;
 }
-
-
 
 BOOL GetFileNameFromHandle(HANDLE hFile,DWORD dwDebugEventCode,ofstream &out_file)
 {
@@ -342,11 +379,11 @@ BOOL GetFileNameFromHandle(HANDLE hFile,DWORD dwDebugEventCode,ofstream &out_fil
 }
 
 BOOL binary(unsigned int eflags_cpy,ofstream &out_file) {
-	//eflagsが入ったcharの配列のポインタを受け取り、2進数にして各フラグを表示する
 	int bit_number{};
 	while (true) {
 		if (bit_number == 11) {
 			dout(cout, out_file) << "OF: " << eflags_cpy % 2 << endl;
+			return true;
 			break;
 		}
 		switch (bit_number)
@@ -384,5 +421,4 @@ BOOL binary(unsigned int eflags_cpy,ofstream &out_file) {
 
 	}
 
-	return true;
 }
