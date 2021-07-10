@@ -1,2 +1,1 @@
-# easy_debugger
-My C++ programming practice.
+C++とWinAPIを利用した簡易的なデバッガ
